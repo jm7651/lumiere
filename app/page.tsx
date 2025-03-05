@@ -1,4 +1,4 @@
-"use client";
+"use client"; // 페이지 맨 위에 추가
 import React, { useState, useEffect } from "react";
 import LoadingSpinner from "./loading/loadingSpinner";
 import LumiereSection001 from "./lumiere/Lumiere001";
