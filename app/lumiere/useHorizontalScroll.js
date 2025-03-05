@@ -1,4 +1,4 @@
-// useHorizontalScroll.js - 커스텀 훅 생성
+// useHorizontalScroll.js - 커스텀 훅 개선
 import { useState, useRef, useEffect } from "react";
 
 const useHorizontalScroll = () => {
@@ -8,6 +8,8 @@ const useHorizontalScroll = () => {
   const [isVisible, setIsVisible] = useState(false);
   const requestIdRef = useRef(null);
   const isTouchActiveRef = useRef(false);
+  const lastTouchX = useRef(0);
+  const isHorizontalTouchRef = useRef(false);
 
   useEffect(() => {
     // 이전 애니메이션 프레임 취소 함수
@@ -19,8 +21,8 @@ const useHorizontalScroll = () => {
     };
 
     const handleScroll = () => {
-      // 터치가 활성화되어 있으면 스크롤 애니메이션 방지
-      if (isTouchActiveRef.current) return;
+      // 가로 터치가 활성화되어 있을 때만 스크롤 애니메이션 방지
+      if (isTouchActiveRef.current && isHorizontalTouchRef.current) return;
 
       // 모바일 환경에서만 작동
       if (window.innerWidth > 768) return;
@@ -72,8 +74,8 @@ const useHorizontalScroll = () => {
 
       // 부드러운 스크롤을 위한 애니메이션 프레임 사용
       const animateScroll = () => {
-        // 터치가 활성화되어 있으면 애니메이션 중단
-        if (isTouchActiveRef.current) {
+        // 가로 터치가 활성화되어 있을 때만 애니메이션 중단
+        if (isTouchActiveRef.current && isHorizontalTouchRef.current) {
           requestIdRef.current = null;
           return;
         }
@@ -101,27 +103,51 @@ const useHorizontalScroll = () => {
       requestIdRef.current = window.requestAnimationFrame(animateScroll);
     };
 
-    // 터치 이벤트 핸들러 추가
-    const handleTouchStart = () => {
+    // 현재 DOM 요소 참조 저장
+    const currentStickyRef = stickyRef.current;
+
+    // 터치 이벤트 핸들러 개선
+    const handleTouchStart = (e) => {
+      lastTouchX.current = e.touches[0].clientX;
       isTouchActiveRef.current = true;
+      isHorizontalTouchRef.current = false; // 초기에는 방향 알 수 없음
       cancelAnimationFrame();
+    };
+
+    const handleTouchMove = (e) => {
+      if (!isTouchActiveRef.current) return;
+
+      const touchX = e.touches[0].clientX;
+      // const touchY = e.touches[0].clientY; - 사용하지 않는 변수 제거
+      const deltaX = Math.abs(touchX - lastTouchX.current);
+
+      // 처음 움직임이 주로 가로 방향인지 확인
+      if (!isHorizontalTouchRef.current && deltaX > 10) {
+        isHorizontalTouchRef.current = true;
+      }
+
+      lastTouchX.current = touchX;
     };
 
     const handleTouchEnd = () => {
       // 터치가 끝나면 일정 시간 후에 자동 스크롤 다시 활성화
       setTimeout(() => {
         isTouchActiveRef.current = false;
-      }, 1000); // 1초 딜레이
+        isHorizontalTouchRef.current = false;
+      }, 500); // 0.5초 딜레이로 줄임
     };
 
     window.addEventListener("scroll", handleScroll);
 
     // 터치 이벤트 리스너 추가
-    if (stickyRef.current) {
-      stickyRef.current.addEventListener("touchstart", handleTouchStart, {
+    if (currentStickyRef) {
+      currentStickyRef.addEventListener("touchstart", handleTouchStart, {
         passive: true,
       });
-      stickyRef.current.addEventListener("touchend", handleTouchEnd, {
+      currentStickyRef.addEventListener("touchmove", handleTouchMove, {
+        passive: true,
+      });
+      currentStickyRef.addEventListener("touchend", handleTouchEnd, {
         passive: true,
       });
     }
@@ -134,9 +160,10 @@ const useHorizontalScroll = () => {
       window.removeEventListener("scroll", handleScroll);
       cancelAnimationFrame();
 
-      if (stickyRef.current) {
-        stickyRef.current.removeEventListener("touchstart", handleTouchStart);
-        stickyRef.current.removeEventListener("touchend", handleTouchEnd);
+      if (currentStickyRef) {
+        currentStickyRef.removeEventListener("touchstart", handleTouchStart);
+        currentStickyRef.removeEventListener("touchmove", handleTouchMove);
+        currentStickyRef.removeEventListener("touchend", handleTouchEnd);
       }
     };
   }, [scrollPosition]);
