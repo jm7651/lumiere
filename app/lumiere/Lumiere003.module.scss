@@ -1,0 +1,253 @@
+/* Lumiere003.module.scss 파일에 추가할 스타일 */
+.lumiere003 {
+  margin: 0 auto;
+  padding: 120px 80px;
+  box-sizing: border-box;
+  @media (max-width: 768px) {
+    padding: 0px 0px 120px;
+  }
+}
+.lumiere003Wrapper {
+  width: 1560px;
+  margin: 0 auto;
+
+  @media (max-width: 768px) {
+    width: 100%;
+  }
+}
+.lumiere003_slide {
+  width: 1560px;
+  @media (max-width: 768px) {
+    width: 100%;
+  }
+}
+/* 멀티 캐러셀 섹션 */
+.multi_carousel_section {
+  position: relative;
+  width: 100%;
+  background-color: #fff;
+  color: #000;
+  padding: 80px 0;
+  overflow: hidden;
+
+  @media (max-width: 768px) {
+    padding: 200px 0;
+  }
+}
+
+.section_title {
+  text-align: center;
+  font-size: 36px;
+  font-weight: 600;
+  margin-bottom: 60px;
+
+  @media (max-width: 768px) {
+    font-size: 28px;
+    margin-bottom: 40px;
+  }
+}
+
+.multi_carousel_container {
+  position: relative;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+
+  @media (max-width: 1440px) {
+    max-width: 90%;
+  }
+}
+
+.multi_swiper {
+  overflow: visible !important; /* 중요: 슬라이더 바깥 영역도 보이도록 설정 */
+  padding: 20px 0; /* 슬라이드 그림자를 위한 패딩 */
+}
+
+.multi_slide {
+  transition: transform 0.3s ease;
+}
+
+.slide_inner {
+  position: relative;
+  width: 100%;
+  height: 600px;
+  border-radius: 12px;
+  overflow: hidden;
+  transform: scale(0.95);
+  transition: transform 0.5s ease, box-shadow 0.5s ease;
+  background-color: #f8f8f8;
+
+  @media (max-width: 768px) {
+    height: 350px;
+  }
+}
+
+.slide_active {
+  transform: scale(1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+
+  .slide_content {
+    opacity: 1;
+  }
+}
+
+.slide_content {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 20px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0));
+  color: white;
+  opacity: 0.8;
+  transition: opacity 0.5s ease;
+  z-index: 2;
+
+  h3 {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 8px;
+
+    @media (max-width: 768px) {
+      font-size: 20px;
+    }
+  }
+
+  p {
+    font-size: 16px;
+    opacity: 0.9;
+
+    @media (max-width: 768px) {
+      font-size: 14px;
+    }
+  }
+}
+
+.slide_image_wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* 화살표 네비게이션 */
+.swiper_button_prev,
+.swiper_button_next {
+  position: absolute;
+  top: 50%;
+  width: 50px;
+  height: 50px;
+  margin-top: -25px;
+  z-index: 10;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #000;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: #fff;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  }
+
+  &:after {
+    font-size: 18px;
+    font-weight: bold;
+  }
+
+  @media (max-width: 768px) {
+    width: 40px;
+    height: 40px;
+    margin-top: -20px;
+
+    &:after {
+      font-size: 16px;
+    }
+  }
+}
+
+.swiper_button_prev {
+  left: 10px;
+
+  @media (max-width: 1024px) {
+    left: 20px;
+  }
+}
+
+.swiper_button_next {
+  right: 10px;
+
+  @media (max-width: 1024px) {
+    right: 20px;
+  }
+}
+
+/* 페이지네이션 컨테이너 */
+.pagination_container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 40px;
+}
+
+.multi_pagination {
+  display: flex;
+  gap: 8px;
+
+  :global(.swiper-pagination-bullet) {
+    width: 8px;
+    height: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    opacity: 1;
+  }
+
+  :global(.swiper-pagination-bullet-active) {
+    width: 24px;
+    background: #000;
+  }
+}
+
+.play_button {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.1);
+  border: none;
+  margin-left: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.3s ease;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.2);
+  }
+}
+
+.play_icon {
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 6px 0 6px 10px;
+  border-color: transparent transparent transparent black;
+  margin-left: 2px;
+}
+
+.pause_icon {
+  display: flex;
+  gap: 3px;
+
+  span {
+    width: 3px;
+    height: 12px;
+    background-color: black;
+  }
+}

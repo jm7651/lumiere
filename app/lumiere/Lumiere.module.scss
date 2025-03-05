@@ -1,0 +1,182 @@
+$LumiereWhite: #fff;
+$LumiereBlack: #000;
+
+.bkBG {
+  background: #000;
+}
+
+.whBG {
+  background: #fff;
+}
+
+.bkText {
+  color: $LumiereBlack;
+}
+
+.whText {
+  color: $LumiereWhite;
+}
+
+.main_bg {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  width: 100%;
+  height: 100vh;
+  box-sizing: border-box;
+  display: flex;
+}
+
+.lumiere001_main {
+  width: 100vw;
+  height: 100vh;
+  box-sizing: border-box;
+  display: flex;
+}
+
+.lumiere_logo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.lumiereSection {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
+}
+.lumiereSection008 {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  justify-content: center;
+  align-items: center;
+  padding: 120px 0;
+  p {
+    font-size: 4rem;
+    word-break: keep-all;
+    text-align: center;
+    font-weight: 700;
+  }
+}
+.contentWrapper {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  gap: 40px;
+}
+
+.lumiereTextWrapper {
+  width: 100%;
+  max-width: 600px;
+  padding: 80px 20px;
+  flex-wrap: wrap;
+  word-break: keep-all;
+
+  .title {
+    font-size: 2.4rem;
+  }
+  p {
+    margin-top: 12px;
+    font-size: 1.6rem;
+    opacity: 0.6;
+    word-break: keep-all;
+  }
+}
+
+.lumiere002_image_wrapper {
+  display: flex;
+  gap: 20px;
+}
+.lumiere_phone {
+  width: 100%;
+  min-width: 280px;
+  max-width: 320px;
+  height: auto;
+  aspect-ratio: 483 / 993;
+  border-radius: 48px;
+  object-fit: cover;
+}
+
+/* 이미지와 비디오에 동일한 스타일 적용 */
+.lumiere_phone img,
+.lumiere_phone video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+.horizontal {
+  display: flex;
+}
+.lumiere004_title {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 100;
+  font-size: clamp(4rem, -1.5rem + 8vw, 4.4rem);
+  color: #fff;
+  width: 100%;
+  padding: 20px;
+  font-weight: 700;
+  text-align: center;
+
+  @media (max-width: 768px) {
+    text-align: left;
+  }
+}
+@media (max-width: 768px) {
+  .contentWrapper {
+    display: block;
+  }
+  .sticky_parent {
+    height: 120vh;
+    width: 100%;
+    margin-top: 120px;
+  }
+
+  .sticky {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    width: 100%;
+    overflow: hidden;
+  }
+  .lumiere_phone .horizontal {
+    width: max-content;
+    display: flex;
+    align-items: center;
+    height: 100vh;
+  }
+
+  .lumiere002_image_wrapper {
+    display: flex;
+    padding: 40px;
+
+    .lumiere_phone {
+      width: 70vw;
+      min-width: 200px;
+      max-width: 300px;
+      height: auto;
+      aspect-ratio: 358 / 730;
+      border-radius: 30px;
+      object-fit: cover;
+    }
+
+    /* 모바일에서도 이미지와 비디오에 동일한 스타일 적용 */
+    .lumiere_phone img,
+    .lumiere_phone video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: inherit;
+    }
+  }
+}
