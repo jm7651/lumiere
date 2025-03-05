@@ -1,12 +1,11 @@
 /** @type {import('next').NextConfig} */
-// next.config.js 수정
 const nextConfig = {
   output: "export",
-  basePath: "/lumiere",
+  // basePath는 제거하거나 다음과 같이 조건부로 설정
+  basePath: process.env.VERCEL ? "" : "/lumiere",
   images: {
     unoptimized: true,
   },
-  distDir: "docs", // 빌드 출력 폴더를 docs로 변경
 };
 
 module.exports = nextConfig;
