@@ -11,11 +11,11 @@ const LumiereSection007 = () => {
       <div className={styles.contentWrapper}>
         <div className={styles.lumiereTextWrapper}>
           <div className={`${styles.title} ${styles.bkText}`}>
-            당신만의 시그니처 컬러를 찾는 'LUMIERE 듀얼 립 블렌딩
+            당신만의 시그니처 컬러를 찾는 &apos;LUMIERE 듀얼 립 블렌딩&apos;
           </div>
           <p className={styles.bkText}>
-            LUMIERE의 'AI 립 블렌딩' 기능은 두 가지 다른 립스틱 컬러를 자유롭게
-            믹스매치하여 나만의 특별한 립 컬러를 만들 수 있는 혁신적인
+            LUMIERE의 &apos;AI 립 블렌딩&apos; 기능은 두 가지 다른 립스틱 컬러를
+            자유롭게 믹스매치하여 나만의 특별한 립 컬러를 만들 수 있는 혁신적인
             서비스입니다. AI 아바타에 원하는 두 가지 립스틱을 선택하면
             실시간으로 블렌딩된 새로운 컬러를 미리 확인할 수 있습니다. 이를 통해
             고객은 수백 가지의 새로운 립 컬러를 가상으로 테스트해보고, 자신만의

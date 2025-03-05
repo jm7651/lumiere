@@ -5,10 +5,11 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
+import { Swiper as SwiperType } from "swiper";
 
 function LumiereSection003() {
+  const [swiper, setSwiper] = useState<SwiperType | null>(null);
   const [isPlaying, setIsPlaying] = useState(true);
-  const [swiper, setSwiper] = useState(null);
   const [activeIndex, setActiveIndex] = useState(1);
 
   // 재생/일시정지 토글 함수
@@ -24,7 +25,7 @@ function LumiereSection003() {
   };
 
   // 슬라이드 변경 시 이벤트 핸들러
-  const handleSlideChange = (swiper) => {
+  const handleSlideChange = (swiper: SwiperType) => {
     setActiveIndex(swiper.realIndex);
   };
 

@@ -24,10 +24,10 @@ const LumiereSection002 = () => {
           />
           <div className={`${styles.title} ${styles.whText}`}>Concept</div>
           <p className={styles.whText}>
-            LUMIERE는 프랑스어로 '빛'을 의미하는 단어입니다 모든 사람이 가지고
-            있는 고유한 아름다움, 즉 '내면의 빛'을 믿습니다. 과도한 메이크업이나
-            인위적인 변화가 아닌, 자연스러운 피부 본연의 건강한 광채를 끌어내는
-            것이 우리의 철학입니다.
+            LUMIERE는 프랑스어로 &apos;빛&apos;을 의미하는 단어입니다 모든
+            사람이 가지고 있는 고유한 아름다움, 즉 &apos;내면의 빛&apos;을
+            믿습니다. 과도한 메이크업이나 인위적인 변화가 아닌, 자연스러운 피부
+            본연의 건강한 광채를 끌어내는 것이 우리의 철학입니다.
           </p>
         </div>
 

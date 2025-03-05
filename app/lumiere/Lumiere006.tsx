@@ -12,7 +12,7 @@ function LumiereSection006() {
       <div className={styleSwiper.lumiere003Wrapper}>
         <div className={styles.lumiereTextWrapper}>
           <div className={`${styles.title} ${styles.whText}`}>
-            어디서나 완벽한 'LUMIERE 스마트 라이팅 시뮬레이션'
+            어디서나 완벽한 LUMIERE&apos;s 스마트 라이팅 시뮬레이션
           </div>
           <p className={styles.whText}>
             LUMIERE의 스마트 라이팅 시뮬레이션은 다양한 조명 환경에서 메이크업이

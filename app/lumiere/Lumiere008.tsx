@@ -1,12 +1,11 @@
 import React from "react";
-import Image from "next/image";
 import styles from "./Lumiere.module.scss";
 
 function LumiereSection008() {
   return (
     <div>
       <div className={styles.lumiereSection008}>
-        <p>'LUMIERE'를 소개합니다</p>{" "}
+        <p>&apos;LUMIERE&apos;를 소개합니다</p>{" "}
         <video
           className={styles.lumiere_phone}
           autoPlay
