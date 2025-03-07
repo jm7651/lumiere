@@ -1,14 +1,16 @@
-// useHorizontalScroll.js - 안정적인 가로 스크롤 구현
+// useHorizontalScroll.js - 스크롤 방향에 따른 가로 스크롤 개선
 import { useState, useRef, useEffect } from "react";
 
 const useHorizontalScroll = () => {
-  const stickyRef = useRef(null);
-  const stickyParentRef = useRef(null);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [scrollPosition, setScrollPosition] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
+  const stickyRef = useRef(null);
+  const stickyParentRef = useRef(null);
   const requestIdRef = useRef(null);
-  const isAutoScrollingRef = useRef(false);
+  const lastScrollYRef = useRef(0);
+  const isScrollingDownRef = useRef(false);
+  const maxReachedScrollLeftRef = useRef(0);
   const targetScrollRef = useRef(0);
   const lastScrollTimeRef = useRef(0);
 
@@ -19,9 +21,9 @@ const useHorizontalScroll = () => {
         window.cancelAnimationFrame(requestIdRef.current);
         requestIdRef.current = null;
       }
-      isAutoScrollingRef.current = false;
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleScroll = () => {
       // 모바일 환경에서만 작동
       if (window.innerWidth > 768) return;
@@ -30,6 +32,14 @@ const useHorizontalScroll = () => {
       const sticky = stickyRef.current;
       const stickyParent = stickyParentRef.current;
       const parentRect = stickyParent.getBoundingClientRect();
+
+      // 현재 세로 스크롤 위치
+      const currentScrollY = window.scrollY;
+
+      // 스크롤 방향 감지 (위/아래)
+      const previousScrollY = lastScrollYRef.current;
+      isScrollingDownRef.current = currentScrollY > previousScrollY;
+      lastScrollYRef.current = currentScrollY;
 
       // 가시성 임계값 개선 - 화면 상단에 더 가깝게 설정
       const visibilityThreshold = window.innerHeight * 0.4;
@@ -44,6 +54,7 @@ const useHorizontalScroll = () => {
         cancelAnimationFrame();
         sticky.scrollLeft = 0;
         setScrollPosition(0);
+        maxReachedScrollLeftRef.current = 0;
         return;
       }
 
@@ -69,22 +80,43 @@ const useHorizontalScroll = () => {
       };
 
       // 목표 스크롤 위치 계산
-      const targetScroll = Math.round(
+      const calculatedTargetScroll = Math.round(
         easeInOutCubic(scrollProgress) * scrollWidth
       );
+
+      // 스크롤 방향에 따른 처리
+      let targetScroll;
+
+      if (isScrollingDownRef.current) {
+        // 아래로 스크롤 중일 때
+        // 계산된 목표 위치가 지금까지의 최대값보다 크면 업데이트
+        if (calculatedTargetScroll > maxReachedScrollLeftRef.current) {
+          maxReachedScrollLeftRef.current = calculatedTargetScroll;
+        }
+        // 아래로 스크롤 중일 때는 항상 최대 도달 위치를 목표로 사용
+        targetScroll = maxReachedScrollLeftRef.current;
+      } else {
+        // 위로 스크롤 중일 때는 계산된 현재 위치를 사용
+        targetScroll = calculatedTargetScroll;
+        // 위로 스크롤 할 때 현재 계산된 위치가 최대 도달 위치보다 작으면 최대값도 함께 줄임
+        if (calculatedTargetScroll < maxReachedScrollLeftRef.current) {
+          maxReachedScrollLeftRef.current = calculatedTargetScroll;
+        }
+      }
+
       targetScrollRef.current = targetScroll;
 
-      // 현재 시간과 마지막 스크롤 시간 사이의 간격이 충분한지 확인
+      // 현재 시간과 마지막 스크롤 시간 사이의 간격이 충분한지 확인 (스로틀링)
       const now = Date.now();
       const timeSinceLastScroll = now - lastScrollTimeRef.current;
 
-      // 너무 빈번한 업데이트 방지 (100ms 간격)
-      if (timeSinceLastScroll < 100) {
+      // 너무 빈번한 업데이트 방지 (50ms 간격)
+      if (timeSinceLastScroll < 50) {
         return;
       }
 
       // 목표 위치와 현재 위치의 차이가 충분히 큰 경우에만 애니메이션 실행
-      if (Math.abs(targetScroll - sticky.scrollLeft) > 5) {
+      if (Math.abs(targetScroll - sticky.scrollLeft) > 3) {
         lastScrollTimeRef.current = now;
         animateToTarget(sticky, targetScroll);
       }
@@ -95,13 +127,10 @@ const useHorizontalScroll = () => {
       // 이미 애니메이션이 진행 중이면 취소
       cancelAnimationFrame();
 
-      // 자동 스크롤 상태 설정
-      isAutoScrollingRef.current = true;
-
       // 부드러운 스크롤을 위한 애니메이션 프레임 사용
       const animateScroll = () => {
         // 부드러운 이동을 위한 감속 계수 조정
-        const smoothFactor = 0.08; // 더 작은 값 = 더 부드러운 움직임
+        const smoothFactor = 0.1;
         const currentPosition = element.scrollLeft;
         const diff = targetScroll - currentPosition;
 
@@ -110,7 +139,6 @@ const useHorizontalScroll = () => {
           element.scrollLeft = targetScroll;
           setScrollPosition(targetScroll);
           requestIdRef.current = null;
-          isAutoScrollingRef.current = false;
           return;
         }
 
@@ -148,19 +176,17 @@ const useHorizontalScroll = () => {
     const element = stickyRef.current;
 
     // 원래 스타일 저장
-    const originalOverflowX = element.style.overflowX;
     const originalTouchAction = element.style.touchAction;
 
     // 가로 터치 입력 비활성화 (세로 터치는 허용)
     element.style.touchAction = "pan-y";
 
-    // CSS 속성만으로 가로 스크롤을 비활성화할 수 없을 수 있으므로,
-    // 터치 이벤트를 사용하여 가로 스크롤을 명시적으로 차단
-
     // 터치 시작 시 현재 스크롤 위치 기억
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     let startX, startY, startScrollLeft;
     let isTouchActive = false;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleTouchStart = (e) => {
       if (e.touches.length !== 1) return;
 
@@ -173,10 +199,10 @@ const useHorizontalScroll = () => {
       if (requestIdRef.current) {
         window.cancelAnimationFrame(requestIdRef.current);
         requestIdRef.current = null;
-        isAutoScrollingRef.current = false;
       }
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleTouchMove = (e) => {
       if (!isTouchActive || e.touches.length !== 1) return;
 
@@ -190,16 +216,11 @@ const useHorizontalScroll = () => {
       // 가로 움직임이 더 크다면 터치 이벤트 차단 (세로 스크롤 허용)
       if (deltaX > deltaY) {
         // 가로 스크롤 시도를 감지하면 스크롤 위치 고정
-        if (isAutoScrollingRef.current) {
-          // 자동 스크롤 중이면 목표 위치로 설정
-          element.scrollLeft = targetScrollRef.current;
-        } else {
-          // 자동 스크롤 중이 아니면 시작 위치로 복원
-          element.scrollLeft = startScrollLeft;
-        }
+        element.scrollLeft = targetScrollRef.current;
       }
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleTouchEnd = () => {
       isTouchActive = false;
 
@@ -217,7 +238,6 @@ const useHorizontalScroll = () => {
     // 정리 함수
     return () => {
       // 원래 스타일 복원
-      element.style.overflowX = originalOverflowX;
       element.style.touchAction = originalTouchAction;
 
       // 이벤트 리스너 제거
@@ -232,12 +252,15 @@ const useHorizontalScroll = () => {
     if (!stickyParentRef.current) return;
 
     const observer = new IntersectionObserver(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (entries) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         entries.forEach((entry) => {
           // 요소가 뷰포트에서 사라지면 스크롤 위치 초기화
           if (!entry.isIntersecting && stickyRef.current) {
             stickyRef.current.scrollLeft = 0;
             setScrollPosition(0);
+            maxReachedScrollLeftRef.current = 0;
             targetScrollRef.current = 0;
           }
         });
