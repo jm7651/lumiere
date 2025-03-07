@@ -1,4 +1,4 @@
-// useHorizontalScroll.js - 커스텀 훅 개선
+// useHorizontalScroll.js - 커스텀 훅 개선 (가로 터치 비활성화)
 import { useState, useRef, useEffect } from "react";
 
 const useHorizontalScroll = () => {
@@ -9,7 +9,6 @@ const useHorizontalScroll = () => {
   const requestIdRef = useRef(null);
   const isTouchActiveRef = useRef(false);
   const lastTouchX = useRef(0);
-  const isHorizontalTouchRef = useRef(false);
 
   useEffect(() => {
     // 이전 애니메이션 프레임 취소 함수
@@ -21,9 +20,6 @@ const useHorizontalScroll = () => {
     };
 
     const handleScroll = () => {
-      // 가로 터치가 활성화되어 있을 때만 스크롤 애니메이션 방지
-      if (isTouchActiveRef.current && isHorizontalTouchRef.current) return;
-
       // 모바일 환경에서만 작동
       if (window.innerWidth > 768) return;
       if (!stickyRef.current || !stickyParentRef.current) return;
@@ -74,13 +70,7 @@ const useHorizontalScroll = () => {
 
       // 부드러운 스크롤을 위한 애니메이션 프레임 사용
       const animateScroll = () => {
-        // 가로 터치가 활성화되어 있을 때만 애니메이션 중단
-        if (isTouchActiveRef.current && isHorizontalTouchRef.current) {
-          requestIdRef.current = null;
-          return;
-        }
-
-        // 더 부드러운 감속 계수
+        // 터치 중에도 자동 스크롤 유지 (가로 터치 방지를 위해)
         const smoothFactor = 0.12;
         const nextPosition =
           scrollPosition + (targetScroll - scrollPosition) * smoothFactor;
@@ -106,46 +96,41 @@ const useHorizontalScroll = () => {
     // 현재 DOM 요소 참조 저장
     const currentStickyRef = stickyRef.current;
 
-    // 터치 이벤트 핸들러 개선
+    // 터치 이벤트 핸들러 - 가로 터치 스크롤 방지
     const handleTouchStart = (e) => {
+      // 터치 시작 지점 저장
       lastTouchX.current = e.touches[0].clientX;
       isTouchActiveRef.current = true;
-      isHorizontalTouchRef.current = false; // 초기에는 방향 알 수 없음
-      cancelAnimationFrame();
     };
 
     const handleTouchMove = (e) => {
-      if (!isTouchActiveRef.current) return;
+      if (!isTouchActiveRef.current || !currentStickyRef) return;
 
+      // 가로 방향 터치 움직임 방지
       const touchX = e.touches[0].clientX;
-      // const touchY = e.touches[0].clientY; - 사용하지 않는 변수 제거
-      const deltaX = Math.abs(touchX - lastTouchX.current);
+      const deltaX = touchX - lastTouchX.current;
 
-      // 처음 움직임이 주로 가로 방향인지 확인
-      if (!isHorizontalTouchRef.current && deltaX > 10) {
-        isHorizontalTouchRef.current = true;
+      // 가로 방향 터치가 감지되면 이벤트 취소하여 스크롤 방지
+      if (Math.abs(deltaX) > 10) {
+        e.preventDefault(); // passive가 false일 때만 작동
       }
 
       lastTouchX.current = touchX;
     };
 
     const handleTouchEnd = () => {
-      // 터치가 끝나면 일정 시간 후에 자동 스크롤 다시 활성화
-      setTimeout(() => {
-        isTouchActiveRef.current = false;
-        isHorizontalTouchRef.current = false;
-      }, 500); // 0.5초 딜레이로 줄임
+      isTouchActiveRef.current = false;
     };
 
     window.addEventListener("scroll", handleScroll);
 
-    // 터치 이벤트 리스너 추가
+    // 터치 이벤트 리스너 추가 - passive를 false로 변경하여 preventDefault 허용
     if (currentStickyRef) {
       currentStickyRef.addEventListener("touchstart", handleTouchStart, {
-        passive: true,
+        passive: true, // touchstart는 passive 유지
       });
       currentStickyRef.addEventListener("touchmove", handleTouchMove, {
-        passive: true,
+        passive: false, // preventDefault를 호출하기 위해 false로 설정
       });
       currentStickyRef.addEventListener("touchend", handleTouchEnd, {
         passive: true,
