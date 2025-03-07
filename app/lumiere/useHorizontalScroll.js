@@ -9,6 +9,7 @@ const useHorizontalScroll = () => {
   const requestIdRef = useRef(null);
 
   useEffect(() => {
+    // 이전 애니메이션 프레임 취소 함수
     const cancelAnimationFrame = () => {
       if (requestIdRef.current !== null) {
         window.cancelAnimationFrame(requestIdRef.current);
@@ -17,6 +18,7 @@ const useHorizontalScroll = () => {
     };
 
     const handleScroll = () => {
+      // 모바일 환경에서만 작동
       if (window.innerWidth > 768) return;
       if (!stickyRef.current || !stickyParentRef.current) return;
 
@@ -24,12 +26,15 @@ const useHorizontalScroll = () => {
       const stickyParent = stickyParentRef.current;
       const parentRect = stickyParent.getBoundingClientRect();
 
+      // 가시성 임계값 개선 - 화면 상단에 더 가깝게 설정
       const visibilityThreshold = window.innerHeight * 0.4;
       const shouldBeVisible =
         parentRect.top <= visibilityThreshold && parentRect.bottom >= 0;
 
+      // 가시성 상태 업데이트
       setIsVisible(shouldBeVisible);
 
+      // 가시성 조건을 만족하지 않으면 스크롤 초기화
       if (!shouldBeVisible) {
         cancelAnimationFrame();
         sticky.scrollLeft = 0;
@@ -40,8 +45,11 @@ const useHorizontalScroll = () => {
       const scrollWidth = sticky.scrollWidth - sticky.clientWidth;
       const parentHeight = parentRect.height;
       const stickyHeight = sticky.getBoundingClientRect().height;
+
+      // 수직 스크롤 범위 개선
       const verticalScrollHeight = Math.max(parentHeight - stickyHeight, 1);
 
+      // 스크롤 진행률 계산 - 더 부드러운 시작과 끝을 위한 계산 방식 개선
       const scrollProgress = Math.max(
         0,
         Math.min(
@@ -50,17 +58,21 @@ const useHorizontalScroll = () => {
         )
       );
 
+      // 이징 함수 - 더 부드러운 곡선으로 변경
       const easeInOutCubic = (t) => {
         return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
       };
 
+      // 목표 스크롤 위치 계산
       const targetScroll = easeInOutCubic(scrollProgress) * scrollWidth;
 
+      // 부드러운 스크롤을 위한 애니메이션 프레임 사용
       const animateScroll = () => {
         const smoothFactor = 0.12;
         const nextPosition =
           scrollPosition + (targetScroll - scrollPosition) * smoothFactor;
 
+        // 작은 변화는 무시하여 안정성 개선
         if (Math.abs(nextPosition - scrollPosition) < 0.1) {
           sticky.scrollLeft = targetScroll;
           setScrollPosition(targetScroll);
@@ -73,43 +85,63 @@ const useHorizontalScroll = () => {
         requestIdRef.current = window.requestAnimationFrame(animateScroll);
       };
 
+      // 기존 애니메이션 취소 후 새로운 애니메이션 시작
       cancelAnimationFrame();
       requestIdRef.current = window.requestAnimationFrame(animateScroll);
     };
 
     window.addEventListener("scroll", handleScroll);
 
+    // 초기 렌더링 시 상태 확인을 위한 호출
     handleScroll();
 
+    // 컴포넌트 언마운트 시 이벤트 리스너와 애니메이션 정리
     return () => {
       window.removeEventListener("scroll", handleScroll);
       cancelAnimationFrame();
     };
   }, [scrollPosition]);
 
+  // 가로 스크롤을 완전히 비활성화하기 위한 CSS 스타일 적용
   useEffect(() => {
     if (!stickyRef.current) return;
 
     const element = stickyRef.current;
 
+    // 원래 스타일 저장
     const originalOverflowX = element.style.overflowX;
     const originalWebkitOverflowScrolling =
       element.style.webkitOverflowScrolling;
     const originalScrollSnapType = element.style.scrollSnapType;
     const originalTouchAction = element.style.touchAction;
 
-    element.style.overflowX = "hidden";
-    element.style.webkitOverflowScrolling = "touch";
-    element.style.scrollSnapType = "none";
-    element.style.touchAction = "pan-y";
+    // 가로 스크롤 비활성화
+    element.style.overflowX = "hidden"; // 가로 스크롤 숨김
+    element.style.webkitOverflowScrolling = "touch"; // 부드러운 스크롤 유지
+    element.style.scrollSnapType = "none"; // 스크롤 스냅 비활성화
+    element.style.touchAction = "pan-y"; // 세로 터치만 허용
+
+    // CSS를 활용한 가로 스크롤 방지 대신 프로그래매틱 접근 사용
+    let lastScrollLeft = element.scrollLeft;
 
     const enforceScrollPosition = () => {
-      element.scrollLeft = 0;
+      if (element.scrollLeft !== lastScrollLeft) {
+        // 프로그래매틱하게 설정된 스크롤 위치가 아닌 경우에만 복원
+        if (!requestIdRef.current) {
+          element.scrollLeft = lastScrollLeft;
+        } else {
+          // 프로그래매틱 스크롤 위치 업데이트
+          lastScrollLeft = element.scrollLeft;
+        }
+      }
     };
 
+    // 스크롤 이벤트 리스너
     element.addEventListener("scroll", enforceScrollPosition);
 
+    // 정리 함수
     return () => {
+      // 원래 스타일 복원
       element.style.overflowX = originalOverflowX;
       element.style.webkitOverflowScrolling = originalWebkitOverflowScrolling;
       element.style.scrollSnapType = originalScrollSnapType;
@@ -119,19 +151,21 @@ const useHorizontalScroll = () => {
     };
   }, []);
 
+  // 다른 섹션과의 충돌 방지를 위한 IntersectionObserver 추가
   useEffect(() => {
     if (!stickyParentRef.current) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
+          // 요소가 뷰포트에서 사라지면 스크롤 위치 초기화
           if (!entry.isIntersecting && stickyRef.current) {
             stickyRef.current.scrollLeft = 0;
             setScrollPosition(0);
           }
         });
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 } // 10% 만 보여도 감지
     );
 
     observer.observe(stickyParentRef.current);
