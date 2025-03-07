@@ -81,9 +81,15 @@ const useHorizontalScroll = () => {
       // 이미 끝에 도달했는지 확인 (스크롤 위치가 95% 이상)
       const isNearEnd = calculatedTargetScroll >= scrollWidth * 0.95;
 
-      // 끝에 도달했으면 플래그 설정
-      if (isNearEnd) {
-        reachedEndRef.current = true;
+      // 스크롤 방향에 따른 처리
+      if (isScrollingDownRef.current) {
+        // 아래로 스크롤 중일 때 끝에 도달하면 플래그 설정
+        if (isNearEnd) {
+          reachedEndRef.current = true;
+        }
+      } else {
+        // 위로 스크롤 중일 때는 플래그 해제 - 원래 위치로 돌아갈 수 있게 함
+        reachedEndRef.current = false;
       }
 
       // 목표 스크롤 위치 결정 로직
