@@ -1,4 +1,4 @@
-// useHorizontalScroll.js - 커스텀 훅 개선 (가로 터치 비활성화)
+// useHorizontalScroll.js - 커스텀 훅 개선 (세로 스크롤 허용)
 import { useState, useRef, useEffect } from "react";
 
 const useHorizontalScroll = () => {
@@ -7,8 +7,6 @@ const useHorizontalScroll = () => {
   const [scrollPosition, setScrollPosition] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   const requestIdRef = useRef(null);
-  const isTouchActiveRef = useRef(false);
-  const lastTouchX = useRef(0);
 
   useEffect(() => {
     // 이전 애니메이션 프레임 취소 함수
@@ -70,7 +68,6 @@ const useHorizontalScroll = () => {
 
       // 부드러운 스크롤을 위한 애니메이션 프레임 사용
       const animateScroll = () => {
-        // 터치 중에도 자동 스크롤 유지 (가로 터치 방지를 위해)
         const smoothFactor = 0.12;
         const nextPosition =
           scrollPosition + (targetScroll - scrollPosition) * smoothFactor;
@@ -93,49 +90,9 @@ const useHorizontalScroll = () => {
       requestIdRef.current = window.requestAnimationFrame(animateScroll);
     };
 
-    // 현재 DOM 요소 참조 저장
-    const currentStickyRef = stickyRef.current;
-
-    // 터치 이벤트 핸들러 - 가로 터치 스크롤 방지
-    const handleTouchStart = (e) => {
-      // 터치 시작 지점 저장
-      lastTouchX.current = e.touches[0].clientX;
-      isTouchActiveRef.current = true;
-    };
-
-    const handleTouchMove = (e) => {
-      if (!isTouchActiveRef.current || !currentStickyRef) return;
-
-      // 가로 방향 터치 움직임 방지
-      const touchX = e.touches[0].clientX;
-      const deltaX = touchX - lastTouchX.current;
-
-      // 가로 방향 터치가 감지되면 이벤트 취소하여 스크롤 방지
-      if (Math.abs(deltaX) > 10) {
-        e.preventDefault(); // passive가 false일 때만 작동
-      }
-
-      lastTouchX.current = touchX;
-    };
-
-    const handleTouchEnd = () => {
-      isTouchActiveRef.current = false;
-    };
-
     window.addEventListener("scroll", handleScroll);
 
-    // 터치 이벤트 리스너 추가 - passive를 false로 변경하여 preventDefault 허용
-    if (currentStickyRef) {
-      currentStickyRef.addEventListener("touchstart", handleTouchStart, {
-        passive: true, // touchstart는 passive 유지
-      });
-      currentStickyRef.addEventListener("touchmove", handleTouchMove, {
-        passive: false, // preventDefault를 호출하기 위해 false로 설정
-      });
-      currentStickyRef.addEventListener("touchend", handleTouchEnd, {
-        passive: true,
-      });
-    }
+    // 터치 이벤트 관련 코드 제거 - 세로 스크롤 방해하지 않도록
 
     // 초기 렌더링 시 상태 확인을 위한 호출
     handleScroll();
@@ -144,12 +101,6 @@ const useHorizontalScroll = () => {
     return () => {
       window.removeEventListener("scroll", handleScroll);
       cancelAnimationFrame();
-
-      if (currentStickyRef) {
-        currentStickyRef.removeEventListener("touchstart", handleTouchStart);
-        currentStickyRef.removeEventListener("touchmove", handleTouchMove);
-        currentStickyRef.removeEventListener("touchend", handleTouchEnd);
-      }
     };
   }, [scrollPosition]);
 
