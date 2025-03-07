@@ -1,4 +1,4 @@
-// useHorizontalScroll.js - 스크롤 방향에 따른 가로 스크롤 개선
+// useHorizontalScroll.js - 스크롤 영역 벗어나도 가로 스크롤 위치 유지
 import { useState, useRef, useEffect } from "react";
 
 const useHorizontalScroll = () => {
@@ -10,9 +10,7 @@ const useHorizontalScroll = () => {
   const requestIdRef = useRef(null);
   const lastScrollYRef = useRef(0);
   const isScrollingDownRef = useRef(false);
-  const maxReachedScrollLeftRef = useRef(0);
-  const targetScrollRef = useRef(0);
-  const lastScrollTimeRef = useRef(0);
+  const reachedEndRef = useRef(false);
 
   useEffect(() => {
     // 이전 애니메이션 프레임 취소 함수
@@ -23,7 +21,6 @@ const useHorizontalScroll = () => {
       }
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleScroll = () => {
       // 모바일 환경에서만 작동
       if (window.innerWidth > 768) return;
@@ -49,12 +46,9 @@ const useHorizontalScroll = () => {
       // 가시성 상태 업데이트
       setIsVisible(shouldBeVisible);
 
-      // 가시성 조건을 만족하지 않으면 스크롤 초기화
+      // 가시성 조건을 만족하지 않아도 스크롤 위치 유지 (초기화하지 않음)
       if (!shouldBeVisible) {
         cancelAnimationFrame();
-        sticky.scrollLeft = 0;
-        setScrollPosition(0);
-        maxReachedScrollLeftRef.current = 0;
         return;
       }
 
@@ -84,40 +78,27 @@ const useHorizontalScroll = () => {
         easeInOutCubic(scrollProgress) * scrollWidth
       );
 
-      // 스크롤 방향에 따른 처리
+      // 이미 끝에 도달했는지 확인 (스크롤 위치가 95% 이상)
+      const isNearEnd = calculatedTargetScroll >= scrollWidth * 0.95;
+
+      // 끝에 도달했으면 플래그 설정
+      if (isNearEnd) {
+        reachedEndRef.current = true;
+      }
+
+      // 목표 스크롤 위치 결정 로직
       let targetScroll;
 
-      if (isScrollingDownRef.current) {
-        // 아래로 스크롤 중일 때
-        // 계산된 목표 위치가 지금까지의 최대값보다 크면 업데이트
-        if (calculatedTargetScroll > maxReachedScrollLeftRef.current) {
-          maxReachedScrollLeftRef.current = calculatedTargetScroll;
-        }
-        // 아래로 스크롤 중일 때는 항상 최대 도달 위치를 목표로 사용
-        targetScroll = maxReachedScrollLeftRef.current;
+      if (reachedEndRef.current) {
+        // 이미 끝에 도달했다면 항상 최대 위치 사용
+        targetScroll = scrollWidth;
       } else {
-        // 위로 스크롤 중일 때는 계산된 현재 위치를 사용
+        // 아직 끝에 도달하지 않았다면 계산된 위치 사용
         targetScroll = calculatedTargetScroll;
-        // 위로 스크롤 할 때 현재 계산된 위치가 최대 도달 위치보다 작으면 최대값도 함께 줄임
-        if (calculatedTargetScroll < maxReachedScrollLeftRef.current) {
-          maxReachedScrollLeftRef.current = calculatedTargetScroll;
-        }
       }
 
-      targetScrollRef.current = targetScroll;
-
-      // 현재 시간과 마지막 스크롤 시간 사이의 간격이 충분한지 확인 (스로틀링)
-      const now = Date.now();
-      const timeSinceLastScroll = now - lastScrollTimeRef.current;
-
-      // 너무 빈번한 업데이트 방지 (50ms 간격)
-      if (timeSinceLastScroll < 50) {
-        return;
-      }
-
-      // 목표 위치와 현재 위치의 차이가 충분히 큰 경우에만 애니메이션 실행
+      // 현재 위치와 목표 위치 차이가 충분히 클 때만 애니메이션 실행
       if (Math.abs(targetScroll - sticky.scrollLeft) > 3) {
-        lastScrollTimeRef.current = now;
         animateToTarget(sticky, targetScroll);
       }
     };
@@ -130,7 +111,7 @@ const useHorizontalScroll = () => {
       // 부드러운 스크롤을 위한 애니메이션 프레임 사용
       const animateScroll = () => {
         // 부드러운 이동을 위한 감속 계수 조정
-        const smoothFactor = 0.1;
+        const smoothFactor = 0.12;
         const currentPosition = element.scrollLeft;
         const diff = targetScroll - currentPosition;
 
@@ -182,11 +163,11 @@ const useHorizontalScroll = () => {
     element.style.touchAction = "pan-y";
 
     // 터치 시작 시 현재 스크롤 위치 기억
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    let startX, startY, startScrollLeft;
+    let startX = 0;
+    let startY = 0;
+    let startScrollLeft = 0;
     let isTouchActive = false;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleTouchStart = (e) => {
       if (e.touches.length !== 1) return;
 
@@ -202,7 +183,6 @@ const useHorizontalScroll = () => {
       }
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleTouchMove = (e) => {
       if (!isTouchActive || e.touches.length !== 1) return;
 
@@ -213,21 +193,22 @@ const useHorizontalScroll = () => {
       const deltaX = Math.abs(x - startX);
       const deltaY = Math.abs(y - startY);
 
-      // 가로 움직임이 더 크다면 터치 이벤트 차단 (세로 스크롤 허용)
+      // 가로 움직임이 더 크다면, 가로 터치 무시
       if (deltaX > deltaY) {
-        // 가로 스크롤 시도를 감지하면 스크롤 위치 고정
-        element.scrollLeft = targetScrollRef.current;
+        // 가로 스크롤 위치 유지
+        if (reachedEndRef.current) {
+          // 끝에 도달했다면 끝에 위치 유지
+          const scrollWidth = element.scrollWidth - element.clientWidth;
+          element.scrollLeft = scrollWidth;
+        } else {
+          // 그렇지 않으면 시작 위치 유지
+          element.scrollLeft = startScrollLeft;
+        }
       }
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleTouchEnd = () => {
       isTouchActive = false;
-
-      // 터치가 끝나면 자동 스크롤 재개를 위해 상태 업데이트
-      if (element.scrollLeft !== targetScrollRef.current) {
-        element.scrollLeft = targetScrollRef.current;
-      }
     };
 
     // 이벤트 리스너 등록
@@ -252,16 +233,12 @@ const useHorizontalScroll = () => {
     if (!stickyParentRef.current) return;
 
     const observer = new IntersectionObserver(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (entries) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         entries.forEach((entry) => {
-          // 요소가 뷰포트에서 사라지면 스크롤 위치 초기화
-          if (!entry.isIntersecting && stickyRef.current) {
-            stickyRef.current.scrollLeft = 0;
-            setScrollPosition(0);
-            maxReachedScrollLeftRef.current = 0;
-            targetScrollRef.current = 0;
+          // 요소가 뷰포트에서 사라져도 가로 스크롤 위치 유지
+          // 재진입 시 가시성만 업데이트
+          if (!entry.isIntersecting) {
+            setIsVisible(false);
           }
         });
       },
