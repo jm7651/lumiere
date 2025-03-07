@@ -1,12 +1,16 @@
-// useHorizontalScroll.js - 세로 스크롤만 허용하고 자동 가로 스크롤 구현
+// useHorizontalScroll.js - 안정적인 가로 스크롤 구현
 import { useState, useRef, useEffect } from "react";
 
 const useHorizontalScroll = () => {
   const stickyRef = useRef(null);
   const stickyParentRef = useRef(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [scrollPosition, setScrollPosition] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   const requestIdRef = useRef(null);
+  const isAutoScrollingRef = useRef(false);
+  const targetScrollRef = useRef(0);
+  const lastScrollTimeRef = useRef(0);
 
   useEffect(() => {
     // 이전 애니메이션 프레임 취소 함수
@@ -15,6 +19,7 @@ const useHorizontalScroll = () => {
         window.cancelAnimationFrame(requestIdRef.current);
         requestIdRef.current = null;
       }
+      isAutoScrollingRef.current = false;
     };
 
     const handleScroll = () => {
@@ -64,29 +69,63 @@ const useHorizontalScroll = () => {
       };
 
       // 목표 스크롤 위치 계산
-      const targetScroll = easeInOutCubic(scrollProgress) * scrollWidth;
+      const targetScroll = Math.round(
+        easeInOutCubic(scrollProgress) * scrollWidth
+      );
+      targetScrollRef.current = targetScroll;
+
+      // 현재 시간과 마지막 스크롤 시간 사이의 간격이 충분한지 확인
+      const now = Date.now();
+      const timeSinceLastScroll = now - lastScrollTimeRef.current;
+
+      // 너무 빈번한 업데이트 방지 (100ms 간격)
+      if (timeSinceLastScroll < 100) {
+        return;
+      }
+
+      // 목표 위치와 현재 위치의 차이가 충분히 큰 경우에만 애니메이션 실행
+      if (Math.abs(targetScroll - sticky.scrollLeft) > 5) {
+        lastScrollTimeRef.current = now;
+        animateToTarget(sticky, targetScroll);
+      }
+    };
+
+    // 목표 위치로 부드럽게 스크롤하는 함수
+    const animateToTarget = (element, targetScroll) => {
+      // 이미 애니메이션이 진행 중이면 취소
+      cancelAnimationFrame();
+
+      // 자동 스크롤 상태 설정
+      isAutoScrollingRef.current = true;
 
       // 부드러운 스크롤을 위한 애니메이션 프레임 사용
       const animateScroll = () => {
-        const smoothFactor = 0.12;
-        const nextPosition =
-          scrollPosition + (targetScroll - scrollPosition) * smoothFactor;
+        // 부드러운 이동을 위한 감속 계수 조정
+        const smoothFactor = 0.08; // 더 작은 값 = 더 부드러운 움직임
+        const currentPosition = element.scrollLeft;
+        const diff = targetScroll - currentPosition;
 
-        // 작은 변화는 무시하여 안정성 개선
-        if (Math.abs(nextPosition - scrollPosition) < 0.1) {
-          sticky.scrollLeft = targetScroll;
+        // 스크롤 위치가 목표에 충분히 가깝다면 애니메이션 종료
+        if (Math.abs(diff) < 0.5) {
+          element.scrollLeft = targetScroll;
           setScrollPosition(targetScroll);
           requestIdRef.current = null;
+          isAutoScrollingRef.current = false;
           return;
         }
 
-        sticky.scrollLeft = nextPosition;
+        // 다음 위치 계산
+        const nextPosition = currentPosition + diff * smoothFactor;
+
+        // 스크롤 위치 업데이트
+        element.scrollLeft = nextPosition;
         setScrollPosition(nextPosition);
+
+        // 다음 프레임 요청
         requestIdRef.current = window.requestAnimationFrame(animateScroll);
       };
 
-      // 기존 애니메이션 취소 후 새로운 애니메이션 시작
-      cancelAnimationFrame();
+      // 애니메이션 시작
       requestIdRef.current = window.requestAnimationFrame(animateScroll);
     };
 
@@ -100,9 +139,9 @@ const useHorizontalScroll = () => {
       window.removeEventListener("scroll", handleScroll);
       cancelAnimationFrame();
     };
-  }, [scrollPosition]);
+  }, []);
 
-  // 가로 스크롤을 완전히 비활성화하기 위한 CSS 스타일 적용
+  // 가로 스크롤 방지를 위한 CSS 및 이벤트 처리
   useEffect(() => {
     if (!stickyRef.current) return;
 
@@ -110,44 +149,81 @@ const useHorizontalScroll = () => {
 
     // 원래 스타일 저장
     const originalOverflowX = element.style.overflowX;
-    const originalWebkitOverflowScrolling =
-      element.style.webkitOverflowScrolling;
-    const originalScrollSnapType = element.style.scrollSnapType;
     const originalTouchAction = element.style.touchAction;
 
-    // 가로 스크롤 비활성화
-    element.style.overflowX = "hidden"; // 가로 스크롤 숨김
-    element.style.webkitOverflowScrolling = "touch"; // 부드러운 스크롤 유지
-    element.style.scrollSnapType = "none"; // 스크롤 스냅 비활성화
-    element.style.touchAction = "pan-y"; // 세로 터치만 허용
+    // 가로 터치 입력 비활성화 (세로 터치는 허용)
+    element.style.touchAction = "pan-y";
 
-    // CSS를 활용한 가로 스크롤 방지 대신 프로그래매틱 접근 사용
-    let lastScrollLeft = element.scrollLeft;
+    // CSS 속성만으로 가로 스크롤을 비활성화할 수 없을 수 있으므로,
+    // 터치 이벤트를 사용하여 가로 스크롤을 명시적으로 차단
 
-    const enforceScrollPosition = () => {
-      if (element.scrollLeft !== lastScrollLeft) {
-        // 프로그래매틱하게 설정된 스크롤 위치가 아닌 경우에만 복원
-        if (!requestIdRef.current) {
-          element.scrollLeft = lastScrollLeft;
+    // 터치 시작 시 현재 스크롤 위치 기억
+    let startX, startY, startScrollLeft;
+    let isTouchActive = false;
+
+    const handleTouchStart = (e) => {
+      if (e.touches.length !== 1) return;
+
+      isTouchActive = true;
+      startX = e.touches[0].pageX;
+      startY = e.touches[0].pageY;
+      startScrollLeft = element.scrollLeft;
+
+      // 터치 시작시 자동 스크롤 비활성화
+      if (requestIdRef.current) {
+        window.cancelAnimationFrame(requestIdRef.current);
+        requestIdRef.current = null;
+        isAutoScrollingRef.current = false;
+      }
+    };
+
+    const handleTouchMove = (e) => {
+      if (!isTouchActive || e.touches.length !== 1) return;
+
+      const x = e.touches[0].pageX;
+      const y = e.touches[0].pageY;
+
+      // 세로 vs 가로 움직임 감지
+      const deltaX = Math.abs(x - startX);
+      const deltaY = Math.abs(y - startY);
+
+      // 가로 움직임이 더 크다면 터치 이벤트 차단 (세로 스크롤 허용)
+      if (deltaX > deltaY) {
+        // 가로 스크롤 시도를 감지하면 스크롤 위치 고정
+        if (isAutoScrollingRef.current) {
+          // 자동 스크롤 중이면 목표 위치로 설정
+          element.scrollLeft = targetScrollRef.current;
         } else {
-          // 프로그래매틱 스크롤 위치 업데이트
-          lastScrollLeft = element.scrollLeft;
+          // 자동 스크롤 중이 아니면 시작 위치로 복원
+          element.scrollLeft = startScrollLeft;
         }
       }
     };
 
-    // 스크롤 이벤트 리스너
-    element.addEventListener("scroll", enforceScrollPosition);
+    const handleTouchEnd = () => {
+      isTouchActive = false;
+
+      // 터치가 끝나면 자동 스크롤 재개를 위해 상태 업데이트
+      if (element.scrollLeft !== targetScrollRef.current) {
+        element.scrollLeft = targetScrollRef.current;
+      }
+    };
+
+    // 이벤트 리스너 등록
+    element.addEventListener("touchstart", handleTouchStart, { passive: true });
+    element.addEventListener("touchmove", handleTouchMove, { passive: true });
+    element.addEventListener("touchend", handleTouchEnd, { passive: true });
 
     // 정리 함수
     return () => {
       // 원래 스타일 복원
       element.style.overflowX = originalOverflowX;
-      element.style.webkitOverflowScrolling = originalWebkitOverflowScrolling;
-      element.style.scrollSnapType = originalScrollSnapType;
       element.style.touchAction = originalTouchAction;
 
-      element.removeEventListener("scroll", enforceScrollPosition);
+      // 이벤트 리스너 제거
+      element.removeEventListener("touchstart", handleTouchStart);
+      element.removeEventListener("touchmove", handleTouchMove);
+      element.removeEventListener("touchend", handleTouchEnd);
     };
   }, []);
 
@@ -162,6 +238,7 @@ const useHorizontalScroll = () => {
           if (!entry.isIntersecting && stickyRef.current) {
             stickyRef.current.scrollLeft = 0;
             setScrollPosition(0);
+            targetScrollRef.current = 0;
           }
         });
       },
